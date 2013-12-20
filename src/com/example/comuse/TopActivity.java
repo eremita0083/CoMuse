@@ -5,14 +5,19 @@ import java.util.List;
 import java.util.Random;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -48,9 +53,11 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 	private int[] bbIds = { R.raw.bb_102, R.raw.bb_202 };
 	// random
 	private Random rand = new java.util.Random();
-	private boolean flag = false;
-	private Button playBtn;
-	private Button comuseBtn;
+	private Button playBtn, comuseBtn, sendBtn, makeMusicBtn;
+	private TextView sendTo;
+	private GestureDetector gd;
+	private BroadcastReceiver receiver;
+	private String phoneNumber;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -59,9 +66,11 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		Spinner sp1 = (Spinner) findViewById(R.id.element_spinner1);
 		Spinner sp2 = (Spinner) findViewById(R.id.element_spinner2);
 		Spinner sp3 = (Spinner) findViewById(R.id.element_spinner3);
-		Button makeMusicBtn = (Button) findViewById(R.id.decide_btn);
-		Button comuseBtn = (Button) findViewById(R.id.push_play_btn);
+		makeMusicBtn = (Button) findViewById(R.id.decide_btn);
+		comuseBtn = (Button) findViewById(R.id.push_play_btn);
+		sendBtn = (Button) findViewById(R.id.send_btn);
 		playBtn = (Button) findViewById(R.id.play_btn);
+		sendTo = (TextView) findViewById(R.id.send_to);
 
 		// spinner adapter
 		ArrayAdapter<String> sp1Ad = new ArrayAdapter<String>(TopActivity.this,
@@ -82,6 +91,8 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		// btn
 		makeMusicBtn.setOnClickListener(this);
 		playBtn.setOnClickListener(this);
+		sendBtn.setOnClickListener(this);
+		comuseBtn.setOnClickListener(this);
 
 		// soundpool生成
 		soundPool1 = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);
@@ -97,32 +108,53 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			comuseBtn.setOnClickListener(this);
 		}
 
+		// gesture登録
+		gd = new GestureDetector(this, new MyGestureDetector(TopActivity.this));
+
+		// receiver選択後のbroadcastreceiver
+		if (receiver == null) {
+
+			receiver = new BroadcastReceiver() {
+
+				@Override
+				public void onReceive(Context context, Intent intent) {
+					Bundle bundle = intent.getExtras();
+					if (bundle == null) {
+						return;
+					}
+					if (intent.getAction().equals(
+							ConstantUtil.BROADCAST_ACTION_DECIDE_RECEIVER)) {
+						sendTo.setText(bundle.getString("name") + " さん");
+						phoneNumber = bundle.getString("phone");
+					}
+				}
+			};
+			IntentFilter filter = new IntentFilter();
+			filter.addAction(ConstantUtil.BROADCAST_ACTION_DECIDE_RECEIVER);
+			registerReceiver(receiver, filter);
+		}
 	}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.top, menu);
-		return true;
-	}
-
-	// spinnerから要素をゲット
+	// spinnerから要素を取得
 	@Override
 	public void onItemSelected(AdapterView<?> av, View v, int position,
 			long arg3) {
-		switch (av.getId()) {
-		case R.id.element_spinner1:
-			selectSp1 = ((TextView) v).getText().toString();
-			Log.i("sp", selectSp1);
-			break;
-		case R.id.element_spinner2:
-			selectSp2 = ((TextView) v).getText().toString();
-			Log.i("sp", selectSp2);
-			break;
-		case R.id.element_spinner3:
-			selectSp3 = ((TextView) v).getText().toString();
-			Log.i("sp", selectSp3);
-			break;
+		if (v != null) {
+			switch (av.getId()) {
+			case R.id.element_spinner1:
+				selectSp1 = ((TextView) v).getText().toString(); // TODO
+																	// ここでnullpoが出てるっぽい。
+				Log.i("sp", selectSp1);
+				break;
+			case R.id.element_spinner2:
+				selectSp2 = ((TextView) v).getText().toString();
+				Log.i("sp", selectSp2);
+				break;
+			case R.id.element_spinner3:
+				selectSp3 = ((TextView) v).getText().toString();
+				Log.i("sp", selectSp3);
+				break;
+			}
 		}
 
 	}
@@ -143,8 +175,9 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		// spinnerの要素から作曲
 		switch (v.getId()) {
 		case R.id.decide_btn:
-			if(!TextUtils.isEmpty(selectSp1) && !TextUtils.isEmpty(selectSp2) && !TextUtils.isEmpty(selectSp3)){
-				//要素から作曲
+			if (!TextUtils.isEmpty(selectSp1) && !TextUtils.isEmpty(selectSp2)
+					&& !TextUtils.isEmpty(selectSp3)) {
+				// 要素から作曲
 				int elementC = rand.nextInt(cIds.length);
 				int elementD = rand.nextInt(dIds.length);
 				int elementE = rand.nextInt(eIds.length);
@@ -154,61 +187,114 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 				int elementGm = rand.nextInt(gmIds.length);
 				int elementAm = rand.nextInt(amIds.length);
 				int elementBb = rand.nextInt(bbIds.length);
-				//soundpoolに投げ込む
-				
-				firstPhrase.add(soundPool1.load(TopActivity.this, cIds[elementC], 1));
+
+				// soundpoolに投げ込む
+				firstPhrase.add(soundPool1.load(TopActivity.this,
+						cIds[elementC], 1));
 				int firstCLength = getMusicMillis(cIds[elementC]);
-				Log.i("1stC", firstCLength+"");
-				firstPhrase.add(soundPool1.load(TopActivity.this, fIds[elementF], 1));
+				Log.i("1stC", firstCLength + "");
+				firstPhrase.add(soundPool1.load(TopActivity.this,
+						fIds[elementF], 1));
 				int firstFLength = getMusicMillis(fIds[elementF]);
-				Log.i("1stF", firstFLength+"");
-				firstPhrase.add(soundPool1.load(TopActivity.this, amIds[elementAm], 1));
+				Log.i("1stF", firstFLength + "");
+				firstPhrase.add(soundPool1.load(TopActivity.this,
+						amIds[elementAm], 1));
 				int firstAmLength = getMusicMillis(amIds[elementAm]);
-				Log.i("1stAm", firstAmLength+"");
-				
-				/*soundPool2.load(TopActivity.this, resId, 1);
-				soundPool2.load(TopActivity.this, resId, 1);
-				soundPool2.load(TopActivity.this, resId, 1);
-				soundPool3.load(TopActivity.this, resId, 1);
-				soundPool3.load(TopActivity.this, resId, 1);
-				soundPool3.load(TopActivity.this, resId, 1);
-				soundPool4.load(TopActivity.this, resId, 1);
-				soundPool4.load(TopActivity.this, resId, 1);
-				soundPool4.load(TopActivity.this, resId, 1);*/
-				
+				Log.i("1stAm", firstAmLength + "");
+
+				/*
+				 * soundPool2.load(TopActivity.this, resId, 1);
+				 * soundPool2.load(TopActivity.this, resId, 1);
+				 * soundPool2.load(TopActivity.this, resId, 1);
+				 * soundPool3.load(TopActivity.this, resId, 1);
+				 * soundPool3.load(TopActivity.this, resId, 1);
+				 * soundPool3.load(TopActivity.this, resId, 1);
+				 * soundPool4.load(TopActivity.this, resId, 1);
+				 * soundPool4.load(TopActivity.this, resId, 1);
+				 * soundPool4.load(TopActivity.this, resId, 1);
+				 */
+
 				playBtn.setEnabled(true);
-			}else{
-				//要素未選択の場合
-				Toast.makeText(getApplicationContext(), "要素を選んでください", Toast.LENGTH_SHORT).show();
+			} else {
+				// 要素未選択の場合
+				Toast.makeText(getApplicationContext(), "要素を選んでください",
+						Toast.LENGTH_SHORT).show();
 			}
-			
 			break;
 		case R.id.play_btn:
-			//Soundpool
+			// Soundpool
 			soundPool1.play(firstPhrase.get(0), 1, 1, 1, 0, 1);
 			soundPool1.play(firstPhrase.get(1), 1, 1, 1, 0, 1);
 			soundPool1.play(firstPhrase.get(2), 1, 1, 1, 0, 1);
 			break;
 		case R.id.push_play_btn:
-			//TODO プッシュ通知で送られてきた音楽を再生する処理
-			
+			// TODO プッシュ通知で送られてきた音楽を再生する処理
+
+			break;
+		case R.id.send_btn:
+			// 曲を送る人を決める TAGを最初に乗せる。
+			if (!TextUtils.isEmpty(phoneNumber)) {
+				SmsManager smsMgr = SmsManager.getDefault();
+				smsMgr.sendTextMessage(phoneNumber, null, ConstantUtil.SMS_TAG,
+						null, null);
+				phoneNumber = null;
+				sendTo.setText("send to");
+			} else {
+				Toast.makeText(this, "送信先を決めてください", Toast.LENGTH_SHORT).show();
+			}
+
 			break;
 		}
-		
 
+	}
+
+	// long pressを読み取るためにタッチイベントにgdを登録
+	@Override
+	public boolean dispatchTouchEvent(MotionEvent ev) {
+		// TODO Auto-generated method stub
+		return gd.onTouchEvent(ev) || super.dispatchTouchEvent(ev);
 	}
 
 	// soundpoolのreleaseとfinish();
 	@Override
 	protected void onPause() {
 		super.onPause();
-		finish();
+		if (soundPool1 != null) {
+			soundPool1.release();
+			soundPool1 = null;
+		}
+		if (soundPool2 != null) {
+			soundPool2.release();
+			soundPool2 = null;
+		}
+		if (soundPool3 != null) {
+			soundPool3.release();
+			soundPool3 = null;
+		}
+		if (soundPool4 != null) {
+			soundPool4.release();
+			soundPool4 = null;
+		}
+		phoneNumber = null;
+		sendTo.setText("send to");
+	}
+
+	// destroy時にreceiver解除
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		if (receiver != null) {
+			unregisterReceiver(receiver);
+			receiver = null;
+		}
 	}
 
 	// 曲の長さを取得
 	private int getMusicMillis(int resId) {
 		MediaPlayer mp = MediaPlayer.create(TopActivity.this, resId);
 		int musicLength = mp.getDuration();
+		mp.stop();
+		mp.reset();
 		mp.release();
 		mp = null;
 		return musicLength;
