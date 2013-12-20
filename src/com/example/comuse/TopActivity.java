@@ -3,6 +3,8 @@ package com.example.comuse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -13,6 +15,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.os.Handler;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -58,6 +61,15 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 	private GestureDetector gd;
 	private BroadcastReceiver receiver;
 	private String phoneNumber;
+	// スピナーの何番目が選択されているか格納 ☆追加☆
+	private int selectSp1Pos;
+	private int selectSp2Pos;
+	private int selectSp3Pos;
+	// タイマーとハンドラ ☆追加☆
+	Timer timer = null;
+	Handler handle = new Handler();
+	// 音番号フラグ ☆追加☆
+	private int seNo;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -170,6 +182,12 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 	private List<Integer> thirdPhrase = new ArrayList<Integer>();
 	private List<Integer> fourthPhrase = new ArrayList<Integer>();
 
+	// seTime 音源リソースIDをリストにするなら長さもリストにしてしまう ☆追加☆
+	private List<Integer> firstPhraseTime = new ArrayList<Integer>();
+	private List<Integer> secondPhraseTime = new ArrayList<Integer>();
+	private List<Integer> thirdPhraseTime = new ArrayList<Integer>();
+	private List<Integer> fourthPhraseTime = new ArrayList<Integer>();
+
 	@Override
 	public void onClick(View v) {
 		// spinnerの要素から作曲
@@ -189,30 +207,73 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 				int elementBb = rand.nextInt(bbIds.length);
 
 				// soundpoolに投げ込む
+				// 最初のフレーズ音を配列に追加していく ☆追加☆
 				firstPhrase.add(soundPool1.load(TopActivity.this,
 						cIds[elementC], 1));
+				firstPhraseTime.add(getMusicMillis(cIds[elementC]));
 				int firstCLength = getMusicMillis(cIds[elementC]);
 				Log.i("1stC", firstCLength + "");
 				firstPhrase.add(soundPool1.load(TopActivity.this,
 						fIds[elementF], 1));
+				firstPhraseTime.add(getMusicMillis(cIds[elementF]));
 				int firstFLength = getMusicMillis(fIds[elementF]);
 				Log.i("1stF", firstFLength + "");
 				firstPhrase.add(soundPool1.load(TopActivity.this,
 						amIds[elementAm], 1));
+				firstPhraseTime.add(getMusicMillis(cIds[elementAm]));
 				int firstAmLength = getMusicMillis(amIds[elementAm]);
 				Log.i("1stAm", firstAmLength + "");
 
-				/*
-				 * soundPool2.load(TopActivity.this, resId, 1);
-				 * soundPool2.load(TopActivity.this, resId, 1);
-				 * soundPool2.load(TopActivity.this, resId, 1);
-				 * soundPool3.load(TopActivity.this, resId, 1);
-				 * soundPool3.load(TopActivity.this, resId, 1);
-				 * soundPool3.load(TopActivity.this, resId, 1);
-				 * soundPool4.load(TopActivity.this, resId, 1);
-				 * soundPool4.load(TopActivity.this, resId, 1);
-				 * soundPool4.load(TopActivity.this, resId, 1);
-				 */
+				// 2番目のフレーズ音を配列に追加していく ☆追加☆
+				secondPhrase.add(soundPool2.load(TopActivity.this,
+						cIds[elementC], 1));
+				secondPhraseTime.add(getMusicMillis(cIds[elementC]));
+				int secondCLength = getMusicMillis(cIds[elementC]);
+				Log.i("2stC", secondCLength + "");
+				secondPhrase.add(soundPool2.load(TopActivity.this,
+						fIds[elementF], 1));
+				secondPhraseTime.add(getMusicMillis(cIds[elementF]));
+				int secondFLength = getMusicMillis(fIds[elementF]);
+				Log.i("2stF", secondFLength + "");
+				secondPhrase.add(soundPool2.load(TopActivity.this,
+						amIds[elementAm], 1));
+				secondPhraseTime.add(getMusicMillis(cIds[elementAm]));
+				int secondAmLength = getMusicMillis(amIds[elementAm]);
+				Log.i("2stAm", secondAmLength + "");
+
+				// 3番目のフレーズ音を配列に追加していく ☆追加☆
+				thirdPhrase.add(soundPool3.load(TopActivity.this,
+						cIds[elementC], 1));
+				thirdPhraseTime.add(getMusicMillis(cIds[elementC]));
+				int thirdCLength = getMusicMillis(cIds[elementC]);
+				Log.i("3stC", thirdCLength + "");
+				thirdPhrase.add(soundPool3.load(TopActivity.this,
+						fIds[elementF], 1));
+				thirdPhraseTime.add(getMusicMillis(cIds[elementF]));
+				int thirdFLength = getMusicMillis(fIds[elementF]);
+				Log.i("3stF", thirdFLength + "");
+				thirdPhrase.add(soundPool3.load(TopActivity.this,
+						amIds[elementAm], 1));
+				thirdPhraseTime.add(getMusicMillis(cIds[elementAm]));
+				int thirdAmLength = getMusicMillis(amIds[elementAm]);
+				Log.i("3stAm", thirdAmLength + "");
+
+				// 4番目のフレーズ音を配列に追加していく ☆追加☆
+				fourthPhrase.add(soundPool4.load(TopActivity.this,
+						cIds[elementC], 1));
+				firstPhraseTime.add(getMusicMillis(cIds[elementC]));
+				int fourthCLength = getMusicMillis(cIds[elementC]);
+				Log.i("4stC", fourthCLength + "");
+				fourthPhrase.add(soundPool4.load(TopActivity.this,
+						fIds[elementF], 1));
+				firstPhraseTime.add(getMusicMillis(cIds[elementF]));
+				int fourthFLength = getMusicMillis(fIds[elementF]);
+				Log.i("4stF", fourthFLength + "");
+				fourthPhrase.add(soundPool4.load(TopActivity.this,
+						amIds[elementAm], 1));
+				fourthPhraseTime.add(getMusicMillis(cIds[elementAm]));
+				int fourthAmLength = getMusicMillis(amIds[elementAm]);
+				Log.i("4stAm", fourthAmLength + "");
 
 				playBtn.setEnabled(true);
 			} else {
@@ -222,10 +283,15 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			}
 			break;
 		case R.id.play_btn:
-			// Soundpool
-			soundPool1.play(firstPhrase.get(0), 1, 1, 1, 0, 1);
-			soundPool1.play(firstPhrase.get(1), 1, 1, 1, 0, 1);
-			soundPool1.play(firstPhrase.get(2), 1, 1, 1, 0, 1);
+			// スピナーで選択された音（position）を元に各配列の音を取り出す ☆追加☆
+			soundPool1.play(firstPhrase.get(selectSp1Pos), 1, 1, 1, 0, 1);
+			// 最初の音フラグ
+			seNo = 1;
+			// 各音の長さが終わるタイミングで、次の音へ移る ☆追加☆
+			timer = new Timer();
+			timer.schedule(new MyTimer(), secondPhraseTime.get(selectSp2Pos));
+			timer.schedule(new MyTimer(), secondPhraseTime.get(selectSp2Pos)
+					+ thirdPhraseTime.get(selectSp3Pos));
 			break;
 		case R.id.push_play_btn:
 			// TODO プッシュ通知で送られてきた音楽を再生する処理
@@ -298,5 +364,38 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		mp.release();
 		mp = null;
 		return musicLength;
+	}
+
+	// タイマー ☆追加☆
+	class MyTimer extends TimerTask {
+		@Override
+		public void run() {
+			handle.post(new Runnable() {
+				@Override
+				public void run() {
+					// 最初の音なら2番目の音を再生
+					if (seNo == 1) {
+						soundPool2.play(secondPhrase.get(selectSp2Pos), 1, 1,
+								1, 0, 1);
+						// 2曲目再生したよ
+						seNo = 2;
+					}
+					// 2番目の音なら3番目の音を鳴らす。
+					else if (seNo == 2) {
+						soundPool3.play(thirdPhrase.get(selectSp3Pos), 1, 1, 1,
+								0, 1);
+						// 3曲目再生したよ
+						seNo = 3;
+					}
+					// 3番目の音なら4番目の音を鳴らす。
+					// else if (seNo==3) {
+					// soundPool4.play(fourthPhrase.get(selectSp4Pos), 1, 1,
+					// 1, 0, 1);
+					// //4曲目再生したよ
+					// seNo=4;
+					// }
+				}
+			});
+		}
 	}
 }
