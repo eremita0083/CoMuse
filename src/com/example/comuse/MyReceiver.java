@@ -39,8 +39,8 @@ public class MyReceiver extends BroadcastReceiver {
 						R.drawable.ic_launcher, // TODO あとでアイコン変える
 						"CoMuse：Music For You", System.currentTimeMillis());
 				Intent intent1 = new Intent(context, TopActivity.class);
-				intent1.putExtra("from", from);
-				intent1.putExtra("body", body);
+				intent1.putExtra("from", from); //誰から来たか
+				intent1.putExtra("body", body); //メールの本文
 				intent1.addFlags(ConstantUtil.NOTIFICATION_FLAG_RECEIVED_MUSIC);
 				PendingIntent contentIntent = PendingIntent.getActivity(
 						context, 0, intent1,

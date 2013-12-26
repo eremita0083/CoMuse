@@ -21,5 +21,12 @@ public class ConstantUtil {
     public static final String COLUMN_BODY = "body";
     //sms識別タグ
     public static final String SMS_TAG = "#CoMuse:";
+    //startserviceのアクション
+    public static final String INTENT_START_SERVICE_PLAY = "com.example.comuse.play";
+    //曲終了のintentのアクション
+    public static final String INTENT_END_MUSIC = "com.example.comuse.music_end";
+    //曲を贈るときのraw id のキー
+    public static final String INTENT_PRESENT_MUSIC = "presentMusic";
+    
 
 }
