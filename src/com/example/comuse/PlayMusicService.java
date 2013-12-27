@@ -1,23 +1,31 @@
 package com.example.comuse;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 
 public class PlayMusicService extends Service implements Runnable {
-	// ハンドラ 
+	// ハンドラ
 	Handler handler = new Handler();
-	// 音番号フラグ ☆追加☆
+	// 音番号フラグ
 	private int seNo = 0;
-	private int[] musicLoadIds;
+	private int[] loadIds = new int[4];
 	private long[] musicDuration = new long[4];
 	private ScheduledExecutorService executorService = Executors
 			.newSingleThreadScheduledExecutor();
+	private SoundPool[] soundPools = new SoundPool[4];
+	private long[] musicMiliSeconds;
+	private int[] currentMusicIds;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -27,10 +35,31 @@ public class PlayMusicService extends Service implements Runnable {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null) {
-			Bundle bundle = intent.getExtras();
-			musicLoadIds = bundle.getIntArray("playlist");
-			musicDuration = bundle.getLongArray("musicPlayTime");
 			if (intent.getAction().equals(
+					ConstantUtil.INTENT_START_SERVICE_DECIDE)) {
+				Bundle bundle = intent.getExtras();
+				int total = bundle.getInt("total");
+				CreateMusicCode createMusic = new CreateMusicCode(total,
+						getApplicationContext());
+				Log.i("total",total+"");
+				// music を作成
+				currentMusicIds = createMusic.createMusicCode(total);
+				for (int i = 0; i < currentMusicIds.length; i++) {
+					musicDuration[i] = createMusic
+							.getMusicMillis(currentMusicIds[i]);
+				}
+				for (int i = 0; i < soundPools.length; i++) {
+					soundPools[i] = new SoundPool(2, AudioManager.STREAM_MUSIC,
+							0);
+					loadIds[i] = soundPools[i].load(getApplicationContext(),
+							currentMusicIds[i], 1);
+				}
+				musicMiliSeconds = new long[4];
+				for (int i = 0; i < musicMiliSeconds.length; ++i) {
+					musicMiliSeconds[i] = createMusic
+							.getMusicMillis(currentMusicIds[i]);
+				}
+			} else if (intent.getAction().equals(
 					ConstantUtil.INTENT_START_SERVICE_PLAY)) {
 				executorService.execute(this);
 			}
@@ -44,7 +73,7 @@ public class PlayMusicService extends Service implements Runnable {
 		executorService.shutdown();
 	}
 
-	//TODO soundId　更新
+	// TODO soundId　更新
 	@Override
 	public void run() {
 		handler.postDelayed(new Runnable() {
@@ -53,31 +82,36 @@ public class PlayMusicService extends Service implements Runnable {
 				switch (seNo) {
 				case 0:
 					// soundIdは受け渡す
-					TopActivity.soundPools[0].play(musicLoadIds[0], 1, 1, 0, 0, 1);
-					// TODO musicDurationを２曲目の曲の長さで更新
+					soundPools[0].play(loadIds[0], 1, 1, 0, 0, 1);
 					seNo = 1;
-					executorService.execute(this);
+					playMusic();
 					break;
 				case 1:
-					TopActivity.soundPools[1].play(musicLoadIds[1], 1, 1, 0, 0, 1);
-					// TODO musicDurationを３曲目の曲の長さで更新
+					soundPools[1].play(loadIds[1], 1, 1, 0, 0, 1);
 					seNo = 2;
-					executorService.execute(this);
+					playMusic();
 					break;
 				case 2:
-					TopActivity.soundPools[2].play(musicLoadIds[2], 1, 1, 0, 0, 1);
-					// TODO musicDurationを４曲目の曲の長さで更新
+					soundPools[2].play(loadIds[2], 1, 1, 0, 0, 1);
 					seNo = 3;
-					executorService.execute(this);
+					playMusic();
 					break;
 				case 3:
-					TopActivity.soundPools[3].play(musicLoadIds[3], 1, 1, 0, 0, 1);
-					Intent broadIntent = new Intent(ConstantUtil.INTENT_END_MUSIC);
+					soundPools[3].play(loadIds[3], 1, 1, 0, 0, 1);
+					Intent broadIntent = new Intent(
+							ConstantUtil.INTENT_END_MUSIC);
 					sendBroadcast(broadIntent);
+					seNo=0;
 					stopSelf();
 				}
 			}
-		},musicDuration[seNo]);
+		}, musicDuration[seNo]);
+	}
+	
+	private void playMusic(){
+		Intent intent = new Intent(getApplicationContext(), PlayMusicService.class);
+		intent.setAction(ConstantUtil.INTENT_START_SERVICE_PLAY);
+		startService(intent);
 	}
 
 }

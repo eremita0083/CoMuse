@@ -3,13 +3,14 @@ package com.example.comuse;
 import java.util.Random;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
@@ -29,26 +30,12 @@ import android.widget.Toast;
 public class TopActivity extends Activity implements OnItemSelectedListener,
 		OnClickListener {
 
-	static SoundPool[] soundPools = new SoundPool[4];
+	private SoundPool[] soundPools = new SoundPool[4];
 		
 	//作曲要素とその受け皿
 	private String[] element1 = {"うれしい", "たのしい", "かなしい" };
 	private String[] element2 = {"ドキドキ", "ふつ～", "ねむたい" };
 	private String[] element3 = {"あげあげ", "ふつ～", "いらいら" };
-
-	// music code
-	private int[] cIds = { R.raw.c_101, R.raw.c_103, R.raw.c_105, R.raw.c_201,
-			R.raw.c_203, R.raw.c_205 };
-	private int[] dIds = { R.raw.d_104, R.raw.d_204 };
-	private int[] eIds = { R.raw.e_102, R.raw.e_202 };
-	private int[] fIds = { R.raw.f_101, R.raw.f_103, R.raw.f_105, R.raw.f_201,
-			R.raw.f_203, R.raw.f_205 };
-	private int[] fmIds = { R.raw.fm_104, R.raw.fm_204 };
-	private int[] gIds = { R.raw.g_102, R.raw.g_202 };
-	private int[] gmIds = { R.raw.gm_104, R.raw.gm_204 };
-	private int[] amIds = { R.raw.am_101, R.raw.am_103, R.raw.am_105,
-			R.raw.am_201, R.raw.am_203, R.raw.am_205 };
-	private int[] bbIds = { R.raw.bb_102, R.raw.bb_202 };
 
 	// TopActivityのView　や　機能　など
 	private Button playBtn, comuseBtn, sendBtn, makeMusicBtn;
@@ -70,7 +57,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 	
 	//musiclの演奏時間の受け皿
 	long[] musicMiliSeconds;
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -138,6 +125,10 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 							ConstantUtil.BROADCAST_ACTION_DECIDE_RECEIVER)) {
 						sendTo.setText(bundle.getString("name") + " さん");
 						phoneNumber = bundle.getString("phone");
+					}else if(intent.getAction().equals(
+							ConstantUtil.INTENT_END_MUSIC)) {
+						playBtn.setEnabled(true);
+						
 					}
 				}
 			};
@@ -178,55 +169,25 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 
 	@Override
 	public void onClick(View v) {
-		int[] currentMusic = new int[4]; //ここにIDを入れる
+		int total = 0;
 		switch (v.getId()) {
 		case R.id.decide_btn:
 			// spinnerの要素から作曲 TODO
-			int total = spinner1Position + spinner2Position + spinner3Position;
-			if(total == 0 || total == 1){
-				//M メジャー　tonic subdomi tonicの王道進行でいきたい
-				if(total == 0){
-					currentMusic[0] = cIds[rand.nextInt(cIds.length)]; // c f
-					currentMusic[1] = gIds[rand.nextInt(gIds.length)]; //bb g e
-					currentMusic[2] = amIds[rand.nextInt(amIds.length)]; // c am f
-					currentMusic[3] = fIds[rand.nextInt(fIds.length)]; // c f
-				}else if(total == 1){
-					currentMusic[0] = fIds[rand.nextInt(fIds.length)]; // c f
-					currentMusic[1] = gIds[rand.nextInt(gIds.length)];// bb g e 例外
-					currentMusic[2] = amIds[rand.nextInt(amIds.length)]; // c f 例外
-					currentMusic[3] = dIds[rand.nextInt(dIds.length)]; //d
+			total= spinner1Position + spinner2Position + spinner3Position;
+			AsyncTask<Integer,Void,String> async = new AsyncTask<Integer, Void, String>() {
+			
+
+				@Override
+				protected String doInBackground(Integer... params) {
+					Intent decideIntent= new Intent(TopActivity.this,PlayMusicService.class);
+					decideIntent.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE);
+					decideIntent.putExtra("total", params[0]);
+					startService(decideIntent);
+					return null;
 				}
-			}else if(total == 2 || total ==3 ){
-				//m & M　２は元気づける感じ。3はやさしく包み込む感じ
-				if(total == 2){
-					currentMusic[0] = cIds[rand.nextInt(cIds.length)]; // c f
-					currentMusic[1] = gIds[rand.nextInt(gIds.length)];// bb g e 例外
-					currentMusic[2] = amIds[rand.nextInt(amIds.length)]; // c f 例外
-					currentMusic[3] = dIds[rand.nextInt(dIds.length)]; //d
-				}else if(total == 3){
-					currentMusic[0] = cIds[rand.nextInt(fIds.length)]; // c f
-					currentMusic[1] = bbIds[rand.nextInt(bbIds.length)]; //bb g e
-					currentMusic[2] = fIds[rand.nextInt(fIds.length)]; // c am f
-					currentMusic[3] = cIds[rand.nextInt(cIds.length)]; // c f
-				}
-			}else if(total == 4 || total ==5){
-				//m マイナー主体。４は物憂げな感じ、５はエモーショナルに。
-				currentMusic[0] =amIds[rand.nextInt(amIds.length)]; // am
-				if(total == 4){
-					currentMusic[1] = eIds[rand.nextInt(eIds.length)]; //bb g e
-					currentMusic[2] = fIds[rand.nextInt(fIds.length)]; // am c f
-					currentMusic[3] = gmIds[rand.nextInt(gmIds.length)]; //gm fm
-				}else if(total == 5){
-					currentMusic[1] = gIds[rand.nextInt(gIds.length)];// bb g e
-					currentMusic[2] = fIds[rand.nextInt(fIds.length)]; // am c f
-					currentMusic[3] = eIds[rand.nextInt(eIds.length)];//gm fm
-				}
-			}
-			musicMiliSeconds = new long[4];
-			for(int i =0; i < soundPools.length ; ++i){
-				loadIds[i] = soundPools[i].load(getApplicationContext(),currentMusic[i] , 1);
-				musicMiliSeconds[i] = getMusicMillis(currentMusic[i]);
-			}
+				
+			};
+			async.execute(total);
 			playBtn.setEnabled(true);
 			break;
 		case R.id.play_btn:
@@ -234,9 +195,8 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			Intent intent = new Intent(this, PlayMusicService.class);
 			intent.setAction(ConstantUtil.INTENT_START_SERVICE_PLAY);
 			// ここで再生するidを受け渡す
-			intent.putExtra("playlist", currentMusic);
-			intent.putExtra("musicPlayTime", musicMiliSeconds);
 			startService(intent);
+			playBtn.setEnabled(false);
 			break;
 		case R.id.push_play_btn:
 			// TODO 送られてきた音楽を再生する処理
@@ -288,33 +248,5 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			receiver = null;
 		}
 	}
-
-	// sound pool
-	public void makeRawIdsForSP() {
-		int elementC = rand.nextInt(cIds.length);
-		int elementD = rand.nextInt(dIds.length);
-		int elementE = rand.nextInt(eIds.length);
-		int elementF = rand.nextInt(fIds.length);
-		int elementFm = rand.nextInt(fmIds.length);
-		int elementG = rand.nextInt(gIds.length);
-		int elementGm = rand.nextInt(gmIds.length);
-		int elementAm = rand.nextInt(amIds.length);
-		int elementBb = rand.nextInt(bbIds.length);
-
-		// soundpoolに投げ込む
-		// 最初のフレーズ音を配列に追加していく ☆追加☆
-
-	}
-
-	// 曲の長さを取得
-	private int getMusicMillis(int resId) {
-		MediaPlayer mp = MediaPlayer.create(getApplicationContext(), resId);
-		int musicLength = mp.getDuration();
-		mp.stop();
-		mp.reset();
-		mp.release();
-		mp = null;
-		return musicLength;
-	}
-
+	
 }
