@@ -95,7 +95,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		// gesture登録
 		gd = new GestureDetector(this, new MyGestureDetector(TopActivity.this));
 
-		// receiver選択後のbroadcastreceiver
+		// 受け取り手選択後のbroadcastreceiver
 		if (receiver == null) {
 			receiver = new BroadcastReceiver() {
 
@@ -120,6 +120,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			registerReceiver(receiver, filter);
 		}
 		
+		// 受け取った音楽がある場合、comuseボタンをクリック可能にし再生処理へ飛ぶ
 		ComplexPreferences cp = ComplexPreferences.getComplexPreferences(this,
 				ConstantUtil.COMPLEX_PREF_KEY_RECEIVED_MUSIC, MODE_PRIVATE);
 		String[] receivedData = cp.getObject(
@@ -135,14 +136,17 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 				Log.i("received", String.format("%s:total=%s:%s:%s:%s:%s ",
 						receivedMusic[0], receivedMusic[1], receivedMusic[2],
 						receivedMusic[3], receivedMusic[4], receivedMusic[5]));
+				//曲の流れを取得
 				receivedTotal = Integer.valueOf(receivedMusic[1]);
 				for (int i = 0, n = 2; i < receivedMusicIndex.length; i++, n++) {
 					receivedMusicIndex[i] = Integer.valueOf(receivedMusic[n]);
 				}
+				
 				Intent decideIntent = new Intent(this, PlayMusicService.class);
 				decideIntent
-						.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE);
+						.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE);
 				decideIntent.putExtra("total", receivedTotal);
+				decideIntent.putExtra("musicIndex", receivedMusicIndex);
 				startService(decideIntent);
 			}
 		}

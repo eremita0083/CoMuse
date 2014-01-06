@@ -4,6 +4,7 @@ import java.util.Random;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.util.Log;
 import br.com.kots.mob.complex.preferences.ComplexPreferences;
 
 public class CreateMusicCode {
@@ -28,6 +29,7 @@ public class CreateMusicCode {
 				myContext, "musicIndex", Context.MODE_PRIVATE);
 		//自分で作る音楽　パート
 		if (receivedIndex == null) {
+			Log.i("create music code", "simple music create");
 			if (total == 0 || total == 1) {
 				// M メジャー　tonic subdomi tonicの王道進行でいきたい
 				if (total == 0) {
@@ -117,6 +119,7 @@ public class CreateMusicCode {
 			}
 			cp.putObject(ConstantUtil.COMPLEX_PREF_KEY_MUSIC_INDEX, randomIndex);
 		} else {
+			Log.i("create music code", "received music create");
 			// 送られてきた音楽の生成　パート
 			if (total == 0 || total == 1) {
 				// M メジャー　tonic subdomi tonicの王道進行でいきたい

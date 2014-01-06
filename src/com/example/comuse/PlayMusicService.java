@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import br.com.kots.mob.complex.preferences.ComplexPreferences;
 
 public class PlayMusicService extends Service {
 	// ハンドラ
@@ -27,11 +28,15 @@ public class PlayMusicService extends Service {
 	private long[] musicDuration = new long[4];
 	private SoundPool[] soundPools = new SoundPool[4];
 	private long[] musicMiliSeconds;
-	private int[] currentMusicIds;
 	private Timer timer;
 
 	private MediaPlayer mp, mp1, mp2, mp3;
+	private int[] currentMusicIds;
+	private MediaPlayer receivedMp, receivedMp1, receivedMp2, receivedMp3;
 	private MediaPlayer[] mps = { mp, mp1, mp2, mp3 };
+	private MediaPlayer[] receivedMps = { receivedMp, receivedMp1, receivedMp2,
+			receivedMp3 };
+	private int[] receivedMusicIds;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -43,11 +48,18 @@ public class PlayMusicService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null) {
 			if (intent.getAction().equals(
-					ConstantUtil.INTENT_START_SERVICE_DECIDE)) {
+					ConstantUtil.INTENT_START_SERVICE_DECIDE)
+					|| intent.getAction().equals(
+							ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE)) {
 				Bundle bundle = intent.getExtras();
 				int total = bundle.getInt("total");
-				CreateMusicCode createMusic = new CreateMusicCode(total,
-						getApplicationContext());
+				CreateMusicCode createMusic = new CreateMusicCode(total,getApplicationContext());
+				if (intent.getAction().equals(
+						ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE)) {
+					receivedMusicIds = bundle.getIntArray("musicIndex");
+					createMusic.setReceivedIndex(receivedMusicIds);
+					
+				}
 				Log.i("pms total", total + "");
 				SharedPreferences sp = getSharedPreferences("totalPoint",
 						MODE_PRIVATE);
@@ -83,6 +95,9 @@ public class PlayMusicService extends Service {
 							@Override
 							public void onCompletion(MediaPlayer mp) {
 								mps[j + 1].start();
+								if (j == mps.length - 1) {
+									stopSelf();
+								}
 							}
 						});
 
@@ -90,6 +105,16 @@ public class PlayMusicService extends Service {
 							&& i != mps.length - 1) {
 						// APIレベル11以降の機種の場合の処理
 						mps[i].setNextMediaPlayer(mps[i + 1]);
+						if (j == mps.length - 1) {
+							mps[mps.length - 1]
+									.setOnCompletionListener(new OnCompletionListener() {
+
+										@Override
+										public void onCompletion(MediaPlayer mp) {
+											stopSelf();
+										}
+									});
+						}
 					}
 				}
 			} else if (intent.getAction().equals(
@@ -103,7 +128,51 @@ public class PlayMusicService extends Service {
 			} else if (intent.getAction().equals(
 					ConstantUtil.INTENT_START_SERVICE_COMUSE)) {
 				Log.i("play music service comuse ", "play comuse");
+				// 受け取った音楽のローディング処理
+				ComplexPreferences cp = ComplexPreferences
+						.getComplexPreferences(this,
+								ConstantUtil.COMPLEX_PREF_KEY_RECEIVED_MUSIC,
+								MODE_PRIVATE);
+				String[] receivedData = cp.getObject(
+						ConstantUtil.COMPLEX_PREF_KEY_RECEIVED_MUSIC,
+						String[].class);
+
 				// soundpoolが動かなかった場合の代理コード
+				for (int i = 0; i < receivedMps.length; i++) {
+					final int j = i;
+					receivedMps[i] = MediaPlayer.create(
+							getApplicationContext(), receivedMusicIds[i]);
+					if (Build.VERSION.SDK_INT <= 15
+							&& i != receivedMps.length - 1) {
+						// APIレベル15以前の機種の場合の処理
+						receivedMps[i]
+								.setOnCompletionListener(new OnCompletionListener() {
+
+									@Override
+									public void onCompletion(MediaPlayer mp) {
+										receivedMps[j + 1].start();
+										if (j == receivedMps.length - 1) {
+											stopSelf();
+										}
+									}
+								});
+
+					} else if (Build.VERSION.SDK_INT >= 16
+							&& i != receivedMps.length - 1) {
+						// APIレベル16以降の機種の場合の処理
+						receivedMps[i].setNextMediaPlayer(receivedMps[i + 1]);
+						if (j == receivedMps.length - 1) {
+							receivedMps[receivedMps.length - 1]
+									.setOnCompletionListener(new OnCompletionListener() {
+
+										@Override
+										public void onCompletion(MediaPlayer mp) {
+											stopSelf();
+										}
+									});
+						}
+					}
+				}
 				mps[0].start();
 
 				timer = new Timer();
@@ -116,11 +185,21 @@ public class PlayMusicService extends Service {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		for(int i = 0; i < mps.length ; i++){
-			mps[i].stop();
-			mps[i].reset();
-			mps[i].release();
-			mps[i] = null;
+		if (mps != null) {
+			for (int i = 0; i < mps.length; i++) {
+				mps[i].stop();
+				mps[i].reset();
+				mps[i].release();
+				mps[i] = null;
+			}
+		}
+		if (receivedMps != null) {
+			for (int i = 0; i < receivedMps.length; i++) {
+				receivedMps[i].stop();
+				receivedMps[i].reset();
+				receivedMps[i].release();
+				receivedMps[i] = null;
+			}
 		}
 	}
 
