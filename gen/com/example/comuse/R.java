@@ -17,36 +17,52 @@ public final class R {
          screen margins) for sw720dp devices (e.g. 10" tablets) in landscape here.
     
          */
-        public static final int activity_horizontal_margin=0x7f060000;
-        public static final int activity_vertical_margin=0x7f060001;
+        public static final int activity_horizontal_margin=0x7f050000;
+        public static final int activity_vertical_margin=0x7f050001;
     }
     public static final class drawable {
-        public static final int alert_background=0x7f020000;
-        public static final int back=0x7f020001;
-        public static final int ic_launcher=0x7f020002;
+        public static final int alert02=0x7f020000;
+        public static final int alert_background=0x7f020001;
+        public static final int back=0x7f020002;
+        public static final int circle01=0x7f020003;
+        public static final int circle02=0x7f020004;
+        public static final int ic_launcher=0x7f020005;
+        public static final int play02=0x7f020006;
+        public static final int sidebg=0x7f020007;
+        public static final int voice=0x7f020008;
     }
     public static final class id {
-        public static final int action_settings=0x7f09000f;
-        public static final int cancel_btn_alert=0x7f090006;
-        public static final int cb_alert=0x7f090000;
-        public static final int decide_btn=0x7f09000d;
-        public static final int element_spinner1=0x7f09000a;
-        public static final int element_spinner2=0x7f09000b;
-        public static final int element_spinner3=0x7f09000c;
-        public static final int list_alert=0x7f090004;
-        public static final int name_alert=0x7f090001;
-        public static final int ok_btn_alert=0x7f090005;
-        public static final int phone_alert=0x7f090002;
-        public static final int play_btn=0x7f09000e;
-        public static final int push_play_btn=0x7f090009;
-        public static final int send_btn=0x7f090007;
-        public static final int send_to=0x7f090008;
-        public static final int title_alert=0x7f090003;
+        public static final int ImageButton01=0x7f090003;
+        public static final int action_settings=0x7f090013;
+        public static final int cancel_btn_alert=0x7f09000a;
+        public static final int cb_alert=0x7f090004;
+        public static final int decide_btn=0x7f090011;
+        public static final int element_spinner1=0x7f09000e;
+        public static final int element_spinner2=0x7f09000f;
+        public static final int element_spinner3=0x7f090010;
+        public static final int imageButton1=0x7f090000;
+        public static final int imageButton2=0x7f090001;
+        public static final int imageView1=0x7f090002;
+        public static final int list_alert=0x7f090008;
+        public static final int name_alert=0x7f090005;
+        public static final int ok_btn_alert=0x7f090009;
+        public static final int phone_alert=0x7f090006;
+        public static final int play_btn=0x7f090012;
+        public static final int push_play_btn=0x7f09000d;
+        public static final int send_btn=0x7f09000b;
+        public static final int send_to=0x7f09000c;
+        public static final int title_alert=0x7f090007;
     }
     public static final class layout {
-        public static final int alert_dialog_layout=0x7f030000;
-        public static final int dialog_layout=0x7f030001;
-        public static final int top=0x7f030002;
+        public static final int 01=0x7f030000;
+        public static final int 0203=0x7f030001;
+        public static final int 04=0x7f030002;
+        public static final int 05=0x7f030003;
+        public static final int 07=0x7f030004;
+        public static final int 09=0x7f030005;
+        public static final int alert_dialog_layout=0x7f030006;
+        public static final int dialog_layout=0x7f030007;
+        public static final int top=0x7f030008;
     }
     public static final class menu {
         public static final int top=0x7f080000;
@@ -84,9 +100,9 @@ public final class R {
         public static final int gm_204=0x7f04001d;
     }
     public static final class string {
-        public static final int action_settings=0x7f050001;
-        public static final int app_name=0x7f050000;
-        public static final int hello_world=0x7f050002;
+        public static final int action_settings=0x7f060001;
+        public static final int app_name=0x7f060000;
+        public static final int hello_world=0x7f060002;
     }
     public static final class style {
         /** 
