@@ -147,7 +147,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 				Intent decideIntent = new Intent(this, PlayMusicService.class);
 				decideIntent
 						.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE);
-				decideIntent.putExtra("total", receivedTotal);
+				decideIntent.putExtra("receivedtotal", receivedTotal);
 				decideIntent.putExtra("musicIndex", receivedMusicIndex);
 				startService(decideIntent);
 			}
@@ -200,6 +200,9 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			startService(decideIntent);
 			createMusicFlag = true;
 			playBtn.setEnabled(true);
+			if(comuseBtn.isEnabled()){
+				comuseBtn.setEnabled(false);
+			}
 			break;
 		case R.id.play_btn:
 			// service start
@@ -271,6 +274,8 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		createMusicFlag = false;
 		phoneNumber = null;
 		sendTo.setText("send to");
+		Intent intent = new Intent(this,PlayMusicService.class);
+		stopService(intent);
 	}
 
 	// destroy時にreceiver解除

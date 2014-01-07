@@ -35,16 +35,23 @@ public class PlayMusicService extends Service {
 					|| intent.getAction().equals(
 							ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE)) {
 				Bundle bundle = intent.getExtras();
-				int total = bundle.getInt("total");
-				Log.i("pms total", "totalは"+total);
+				int total = -1;
+				if (intent.getAction().equals(
+						ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE)) {
+					total = bundle.getInt("receivedtotal");
+				} else {
+					total = bundle.getInt("total");
+				}
+				Log.i("pms total", "totalは" + total);
 				CreateMusicCode createMusic = new CreateMusicCode(total,
 						getApplicationContext());
-				//受け取った音楽のときだけ
+				// 受け取った音楽のときだけ
 				if (intent.getAction().equals(
 						ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE)) {
 					receivedMusicIds = bundle.getIntArray("musicIndex");
 					createMusic.setReceivedIndex(receivedMusicIds);
-					Log.i("pms decide receiver", "totalは "+total+" recceivedは "+receivedMusicIds.length);
+					Log.i("pms decide receiver", "totalは " + total
+							+ " recceivedは " + receivedMusicIds.length);
 					receivedMusicIds = createMusic.createMusicCode(total);
 				}
 				Log.i("pms total", total + "");
@@ -55,7 +62,7 @@ public class PlayMusicService extends Service {
 				editor.commit();
 				// music を作成
 				currentMusicIds = createMusic.createMusicCode(total);
-				
+
 				for (int i = 0; i < mps.length; i++) {
 					final int j = i;
 					mps[i] = MediaPlayer.create(getApplicationContext(),
@@ -93,60 +100,71 @@ public class PlayMusicService extends Service {
 					ConstantUtil.INTENT_START_SERVICE_PLAY)) {
 				Log.i("play music service simple play ", "play");
 				// 音楽再生
-				mps[0].start();
+				if (receivedMps[0] == null ||!receivedMps[0].isPlaying() && !receivedMps[1].isPlaying()
+						&& !receivedMps[2].isPlaying()
+						&& !receivedMps[3].isPlaying()) {
+					mps[0].start();
+				}
 			} else if (intent.getAction().equals(
 					ConstantUtil.INTENT_START_SERVICE_COMUSE)) {
-				//受け取った音楽の再生処理
+				// 受け取った音楽の再生処理
 				Log.i("play music service comuse ", "play comuse");
-				
-				for (int i = 0; i < receivedMps.length; i++) {
-					final int j = i;
-					Log.i("pms receivedMusicIds", receivedMusicIds.length+"");
-					//mediaplayerを作成
-					receivedMps[i] = MediaPlayer.create(
-							getApplicationContext(), receivedMusicIds[i]);
-					if (Build.VERSION.SDK_INT <= 15
-							&& i != receivedMps.length - 1) {
-						// APIレベル15以前の機種の場合の処理
-						receivedMps[i]
-								.setOnCompletionListener(new OnCompletionListener() {
+				if (mps[0] == null || !mps[0].isPlaying() && !mps[1].isPlaying()
+						&& !mps[2].isPlaying()
+						&& !mps[3].isPlaying()) {
 
-									@Override
-									public void onCompletion(MediaPlayer mp) {
-										receivedMps[j + 1].start();
-										if (j == receivedMps.length - 1) {
-											stopSelf();
-										}
-									}
-								});
-
-					} else if (Build.VERSION.SDK_INT >= 16
-							&& i != receivedMps.length - 1) {
-						// APIレベル16以降の機種の場合の処理
-						receivedMps[i].setNextMediaPlayer(receivedMps[i + 1]);
-						if (j == receivedMps.length - 1) {
-							receivedMps[receivedMps.length - 1]
+					for (int i = 0; i < receivedMps.length; i++) {
+						final int j = i;
+						Log.i("pms receivedMusicIds", receivedMusicIds.length
+								+ "");
+						// mediaplayerを作成
+						receivedMps[i] = MediaPlayer.create(
+								getApplicationContext(), receivedMusicIds[i]);
+						if (Build.VERSION.SDK_INT <= 15
+								&& i != receivedMps.length - 1) {
+							// APIレベル15以前の機種の場合の処理
+							receivedMps[i]
 									.setOnCompletionListener(new OnCompletionListener() {
 
 										@Override
 										public void onCompletion(MediaPlayer mp) {
-											stopSelf();
+											receivedMps[j + 1].start();
+											if (j == receivedMps.length - 1) {
+												stopSelf();
+											}
 										}
 									});
+
+						} else if (Build.VERSION.SDK_INT >= 16
+								&& i != receivedMps.length - 1) {
+							// APIレベル16以降の機種の場合の処理
+							receivedMps[i]
+									.setNextMediaPlayer(receivedMps[i + 1]);
+							if (j == receivedMps.length - 1) {
+								receivedMps[receivedMps.length - 1]
+										.setOnCompletionListener(new OnCompletionListener() {
+
+											@Override
+											public void onCompletion(
+													MediaPlayer mp) {
+												stopSelf();
+											}
+										});
+							}
 						}
 					}
+					mps[0].start();
 				}
-				mps[0].start();
 			}
 		}
 		return super.onStartCommand(intent, flags, startId);
 	}
 
-	//メディアプレイヤーのリソース解放
+	// メディアプレイヤーのリソース解放
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		if (mps != null) {
+		if (mps[0] != null) {
 			for (int i = 0; i < mps.length; i++) {
 				mps[i].stop();
 				mps[i].reset();
@@ -154,7 +172,7 @@ public class PlayMusicService extends Service {
 				mps[i] = null;
 			}
 		}
-		if (receivedMps != null) {
+		if (receivedMps[0] != null) {
 			for (int i = 0; i < receivedMps.length; i++) {
 				receivedMps[i].stop();
 				receivedMps[i].reset();
