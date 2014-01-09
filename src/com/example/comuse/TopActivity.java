@@ -27,7 +27,7 @@ import br.com.kots.mob.complex.preferences.ComplexPreferences;
 
 public class TopActivity extends Activity implements OnItemSelectedListener,
 		OnClickListener {
-	// 作曲要素とその受け皿
+	// 作曲要素とその受け皿 as
 	private String[] element1 = { "うれしい", "たのしい", "かなしい" };
 	private String[] element2 = { "ドキドキ", "ふつ～", "ねむたい" };
 	private String[] element3 = { "あげあげ", "いらいら" };
