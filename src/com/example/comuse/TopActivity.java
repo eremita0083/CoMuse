@@ -8,7 +8,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.SoundPool;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
@@ -28,10 +27,7 @@ import br.com.kots.mob.complex.preferences.ComplexPreferences;
 
 public class TopActivity extends Activity implements OnItemSelectedListener,
 		OnClickListener {
-
-	private SoundPool[] soundPools = new SoundPool[4];
-
-	// 作曲要素とその受け皿
+	// 作曲要素とその受け皿 as
 	private String[] element1 = { "うれしい", "たのしい", "かなしい" };
 	private String[] element2 = { "ドキドキ", "ふつ～", "ねむたい" };
 	private String[] element3 = { "あげあげ", "いらいら" };
@@ -50,17 +46,22 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 	// 受け取った音楽関連
 	private int receivedTotal;
 	private int[] receivedMusicIndex = new int[4];
-	
-	//要素のネガポジ得点
+
+	// 要素のネガポジ得点
 	int total;
+
+	// 効果音
+	private SoundPool btnSe;
+	private int seIds;
+	
+	//作曲済みか否か
+	private boolean createMusicFlag = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.top);
-		for (int i = 0; i < soundPools.length; i++) {
-			soundPools[i] = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);
-		}
+
 		Spinner sp1 = (Spinner) findViewById(R.id.element_spinner1);
 		Spinner sp2 = (Spinner) findViewById(R.id.element_spinner2);
 		Spinner sp3 = (Spinner) findViewById(R.id.element_spinner3);
@@ -95,7 +96,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		// gesture登録
 		gd = new GestureDetector(this, new MyGestureDetector(TopActivity.this));
 
-		// receiver選択後のbroadcastreceiver
+		// 受け取り手選択後のbroadcastreceiver
 		if (receiver == null) {
 			receiver = new BroadcastReceiver() {
 
@@ -119,7 +120,8 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			filter.addAction(ConstantUtil.BROADCAST_ACTION_DECIDE_RECEIVER);
 			registerReceiver(receiver, filter);
 		}
-		
+
+		// 受け取った音楽がある場合、comuseボタンをクリック可能にし再生処理へ飛ぶ
 		ComplexPreferences cp = ComplexPreferences.getComplexPreferences(this,
 				ConstantUtil.COMPLEX_PREF_KEY_RECEIVED_MUSIC, MODE_PRIVATE);
 		String[] receivedData = cp.getObject(
@@ -135,14 +137,18 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 				Log.i("received", String.format("%s:total=%s:%s:%s:%s:%s ",
 						receivedMusic[0], receivedMusic[1], receivedMusic[2],
 						receivedMusic[3], receivedMusic[4], receivedMusic[5]));
+				// 曲の流れを取得
 				receivedTotal = Integer.valueOf(receivedMusic[1]);
 				for (int i = 0, n = 2; i < receivedMusicIndex.length; i++, n++) {
 					receivedMusicIndex[i] = Integer.valueOf(receivedMusic[n]);
+					Log.i("top received",receivedMusicIndex[i]+"");
 				}
+
 				Intent decideIntent = new Intent(this, PlayMusicService.class);
 				decideIntent
-						.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE);
-				decideIntent.putExtra("total", receivedTotal);
+						.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE_RECEIVE);
+				decideIntent.putExtra("receivedtotal", receivedTotal);
+				decideIntent.putExtra("musicIndex", receivedMusicIndex);
 				startService(decideIntent);
 			}
 		}
@@ -179,28 +185,24 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 
 	@Override
 	public void onClick(View v) {
+		btnSe.play(seIds, 1f, 1f, 1, 0, 1);
 		ComplexPreferences cp = ComplexPreferences.getComplexPreferences(this,
 				ConstantUtil.COMPLEX_PREF_KEY_MUSIC_INDEX, MODE_PRIVATE);
 		switch (v.getId()) {
 		case R.id.decide_btn:
 			// spinnerの要素から作曲
 			total = spinner1Position + spinner2Position + spinner3Position;
-			Log.i("top decidebtn total", total+"");
-			AsyncTask<Integer, Void, String> async = new AsyncTask<Integer, Void, String>() {
-
-				@Override
-				protected String doInBackground(Integer... params) {
-					Intent decideIntent = new Intent(TopActivity.this,
-							PlayMusicService.class);
-					decideIntent
-							.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE);
-					decideIntent.putExtra("total", params[0]);
-					startService(decideIntent);
-					return null;
-				}
-			};
-			async.execute(total);
+			Log.i("top decidebtn total", total + "");
+			Intent decideIntent = new Intent(TopActivity.this,
+					PlayMusicService.class);
+			decideIntent.setAction(ConstantUtil.INTENT_START_SERVICE_DECIDE);
+			decideIntent.putExtra("total", total);
+			startService(decideIntent);
+			createMusicFlag = true;
 			playBtn.setEnabled(true);
+			if(comuseBtn.isEnabled()){
+				comuseBtn.setEnabled(false);
+			}
 			break;
 		case R.id.play_btn:
 			// service start
@@ -210,7 +212,7 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			startService(intent);
 			playBtn.setEnabled(false);
 			break;
-		case R.id.push_play_btn: //送られてきた音楽の再生
+		case R.id.push_play_btn: // 送られてきた音楽の再生
 			Intent comuseIntent = new Intent(this, PlayMusicService.class);
 			comuseIntent.setAction(ConstantUtil.INTENT_START_SERVICE_COMUSE);
 			// ここで再生するidを受け渡す
@@ -218,23 +220,27 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 			break;
 		case R.id.send_btn:
 			// 曲を送る人を決める TAGを最初に乗せる。
-			SharedPreferences sp = getSharedPreferences("totalPoint", MODE_PRIVATE);
+			SharedPreferences sp = getSharedPreferences("totalPoint",
+					MODE_PRIVATE);
 			int sendTotal = sp.getInt("totalPoint", -1);
 			int[] index = cp.getObject(
 					ConstantUtil.COMPLEX_PREF_KEY_MUSIC_INDEX, int[].class);
-			if (!TextUtils.isEmpty(phoneNumber) && index != null && sendTotal != -1) {
+			if (!TextUtils.isEmpty(phoneNumber) && createMusicFlag == true) {
 				SmsManager smsMgr = SmsManager.getDefault();
-				smsMgr.sendTextMessage(phoneNumber, null,
-						String.format("%s:%s:%s:%s:%s:%s",
-								ConstantUtil.SMS_TAG, sendTotal, index[0],
-								index[1], index[2], index[3]), null, null);
+				smsMgr.sendTextMessage(phoneNumber, null, String.format(
+						"%s:%s:%s:%s:%s:%s", ConstantUtil.SMS_TAG, sendTotal,
+						index[0], index[1], index[2], index[3]), null, null);
 				phoneNumber = null;
 				sendTo.setText("send to");
+				Toast.makeText(this, "送信しました", Toast.LENGTH_SHORT)
+				.show();
 			} else {
-				if(TextUtils.isEmpty(phoneNumber)){
-					Toast.makeText(this, "送信先を決めてください", Toast.LENGTH_SHORT).show();
-				}else if(index == null){
-					Toast.makeText(this, "要素を選んでください", Toast.LENGTH_SHORT).show();
+				if (TextUtils.isEmpty(phoneNumber)) {
+					Toast.makeText(this, "送信先を決めてください", Toast.LENGTH_SHORT)
+							.show();
+				} else if (createMusicFlag == false) {
+					Toast.makeText(this, "要素を選んで作曲してください", Toast.LENGTH_SHORT)
+							.show();
 				}
 			}
 			break;
@@ -248,18 +254,28 @@ public class TopActivity extends Activity implements OnItemSelectedListener,
 		return gd.onTouchEvent(ev) || super.dispatchTouchEvent(ev);
 	}
 
-	// soundpoolのreleaseとfinish();
+	// btn効果音のロード
+	@Override
+	protected void onResume() {
+		super.onResume();
+		btnSe = new SoundPool(1, AudioManager.STREAM_MUSIC, 1);
+		seIds = btnSe.load(getApplicationContext(), R.raw.decision, 1);
+	}
+
+	// soundpoolのrelease
 	@Override
 	protected void onPause() {
 		super.onPause();
-		if (soundPools[0] != null) {
-			for (int i = 0; i < soundPools.length; i++) {
-				soundPools[i].release();
-				soundPools[i] = null;
-			}
+		if (btnSe != null) {
+			btnSe.stop(seIds);
+			btnSe.release();
+			btnSe = null;
 		}
+		createMusicFlag = false;
 		phoneNumber = null;
 		sendTo.setText("send to");
+		Intent intent = new Intent(this,PlayMusicService.class);
+		stopService(intent);
 	}
 
 	// destroy時にreceiver解除

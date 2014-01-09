@@ -26,6 +26,7 @@ public class ConstantUtil {
 	// startserviceのアクション
 	public static final String INTENT_START_SERVICE_PLAY = "com.example.comuse.play";
 	public static final String INTENT_START_SERVICE_DECIDE = "com.example.comuse.decide";
+	public static final String INTENT_START_SERVICE_DECIDE_RECEIVE = "com.example.comuse.decide.receive";
 	public static final String INTENT_START_SERVICE_COMUSE = "com.example.comuse.comuse";
 	// 曲終了のintentのアクション
 	public static final String INTENT_END_MUSIC = "com.example.comuse.music_end";

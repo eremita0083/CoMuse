@@ -84,20 +84,21 @@ public final class R {
         public static final int c_205=0x7f04000d;
         public static final int d_104=0x7f04000e;
         public static final int d_204=0x7f04000f;
-        public static final int e_102=0x7f040010;
-        public static final int e_202=0x7f040011;
-        public static final int f_101=0x7f040012;
-        public static final int f_103=0x7f040013;
-        public static final int f_105=0x7f040014;
-        public static final int f_201=0x7f040015;
-        public static final int f_203=0x7f040016;
-        public static final int f_205=0x7f040017;
-        public static final int fm_104=0x7f040018;
-        public static final int fm_204=0x7f040019;
-        public static final int g_102=0x7f04001a;
-        public static final int g_202=0x7f04001b;
-        public static final int gm_104=0x7f04001c;
-        public static final int gm_204=0x7f04001d;
+        public static final int decision=0x7f040010;
+        public static final int e_102=0x7f040011;
+        public static final int e_202=0x7f040012;
+        public static final int f_101=0x7f040013;
+        public static final int f_103=0x7f040014;
+        public static final int f_105=0x7f040015;
+        public static final int f_201=0x7f040016;
+        public static final int f_203=0x7f040017;
+        public static final int f_205=0x7f040018;
+        public static final int fm_104=0x7f040019;
+        public static final int fm_204=0x7f04001a;
+        public static final int g_102=0x7f04001b;
+        public static final int g_202=0x7f04001c;
+        public static final int gm_104=0x7f04001d;
+        public static final int gm_204=0x7f04001e;
     }
     public static final class string {
         public static final int action_settings=0x7f060001;
